@@ -2,7 +2,7 @@ import "./Login.css";
 
 export default function Login() {
   const handleLogin = () => {
-    window.location.href = "http://localhost:7000/auth/airtable";
+    window.location.href = "http://airform.onrender.com/auth/airtable";
   };
 
   return (
