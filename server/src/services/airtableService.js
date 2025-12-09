@@ -44,8 +44,6 @@ class AirtableService {
 
     async getWebhookPayloads(baseId, webhookId, cursor) {
         try {
-            // Logic to fetch payloads. Note: This requires managing the cursor state.
-            // For this exercise, we might fetch recent payloads.
             const params = {};
             if (cursor) params.cursor = cursor;
 
@@ -57,7 +55,6 @@ class AirtableService {
         }
     }
 
-    // Webhook management will go here if needed, or in a separate controller
 }
 
 module.exports = AirtableService;
