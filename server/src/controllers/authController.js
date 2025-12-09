@@ -5,30 +5,21 @@ const User = require("../models/User");
 
 
 const base64URLEncode = (buffer) => {
-  return buffer
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
-};
-
-
-const sha256 = (str) => {
-  return crypto.createHash('sha256').update(str).digest();
+  return Buffer.isBuffer(buffer)
+    ? buffer.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "")
+    : Buffer.from(buffer).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 };
 
 exports.loginWithAirtable = (req, res) => {
 
-  const state = crypto.randomBytes(32).toString('hex');
+  const state = crypto.randomBytes(32).toString("hex");
   req.session.oauthState = state;
 
-
-  const rawVerifier = crypto.randomBytes(32);          
-  const codeVerifier = base64URLEncode(rawVerifier);   
+  const codeVerifier = base64URLEncode(crypto.randomBytes(32)); 
   req.session.codeVerifier = codeVerifier;
 
   const codeChallenge = base64URLEncode(
-    sha256(codeVerifier)       
+    crypto.createHash("sha256").update(codeVerifier).digest()
   );
 
   const queryParams = [
@@ -39,20 +30,17 @@ exports.loginWithAirtable = (req, res) => {
       "data.records:read",
       "data.records:write",
       "schema.bases:read",
-      "webhook:manage"
+      "webhook:manage",
     ].join(" "))}`,
     `state=${state}`,
     `code_challenge=${codeChallenge}`,
-    `code_challenge_method=S256`
+    `code_challenge_method=S256`,
   ].join("&");
 
   const authUrl = `https://airtable.com/oauth2/v1/authorize?${queryParams}`;
-
   console.log("\nGenerated OAuth URL (PKCE):\n", authUrl, "\n");
-
   res.redirect(authUrl);
 };
-
 
 exports.oauthCallback = async (req, res) => {
   console.log("OAuth Callback - Query Params:", req.query);
@@ -66,17 +54,15 @@ exports.oauthCallback = async (req, res) => {
   if (!code) {
     return res.status(400).json({
       message: "Missing authorization code.",
-      receivedQuery: req.query
+      receivedQuery: req.query,
     });
   }
 
-  
   if (!state || state !== req.session.oauthState) {
     return res.status(400).send("Invalid state parameter (CSRF mismatch).");
   }
 
   const codeVerifier = req.session.codeVerifier;
-
 
   delete req.session.oauthState;
   delete req.session.codeVerifier;
@@ -86,32 +72,27 @@ exports.oauthCallback = async (req, res) => {
       grant_type: "authorization_code",
       code,
       redirect_uri: process.env.AIRTABLE_REDIRECT,
-      code_verifier: codeVerifier
+      code_verifier: codeVerifier,
     });
 
     const encodedCredentials = Buffer.from(
       `${process.env.AIRTABLE_CLIENT_ID}:${process.env.AIRTABLE_CLIENT_SECRET}`
     ).toString("base64");
 
-    const tokenRes = await axios.post(
-      "https://airtable.com/oauth2/v1/token",
-      body,
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Authorization: `Basic ${encodedCredentials}`
-        }
-      }
-    );
+    const tokenRes = await axios.post("https://airtable.com/oauth2/v1/token", body, {
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Basic ${encodedCredentials}`,
+      },
+    });
 
     const { access_token, refresh_token } = tokenRes.data;
 
     const meRes = await axios.get("https://api.airtable.com/v0/meta/whoami", {
-      headers: { Authorization: `Bearer ${access_token}` }
+      headers: { Authorization: `Bearer ${access_token}` },
     });
 
     const airtableUser = meRes.data;
-
 
     let user = await User.findOne({ airtableUserId: airtableUser.id });
 
@@ -122,11 +103,10 @@ exports.oauthCallback = async (req, res) => {
         name: airtableUser.name,
         oauth: {
           accessToken: access_token,
-          refreshToken: refresh_token
-        }
+          refreshToken: refresh_token,
+        },
       });
     } else {
-
       user.oauth.accessToken = access_token;
       user.oauth.refreshToken = refresh_token;
       await user.save();
@@ -140,11 +120,10 @@ exports.oauthCallback = async (req, res) => {
       });
     });
 
-    return res.redirect(`https://airform-tau.vercel.app/?userId=${user._id}`);
-
-
+    const FRONTEND = process.env.FRONTEND_URL || "https://airform-tau.vercel.app";
+    return res.redirect(`${FRONTEND.replace(/\/$/, "")}/dashboard?userId=${user._id}`);
   } catch (err) {
     console.error("\nOAuth Error:", err.response?.data || err.message);
-    return res.status(500).json({ error: "OAuth failed", details: err.response?.data });
+    return res.status(500).json({ error: "OAuth failed", details: err.response?.data || err.message });
   }
 };
