@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://airform.onrender.com/", 
+  baseURL: "https://airform.onrender.com", 
   withCredentials: true,
 });
 
