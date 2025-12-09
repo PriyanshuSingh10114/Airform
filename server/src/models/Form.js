@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-
 const conditionSchema = new mongoose.Schema(
   {
     questionKey: String,
@@ -12,7 +11,7 @@ const conditionSchema = new mongoose.Schema(
 const rulesSchema = new mongoose.Schema(
   {
     logic: { type: String, default: "AND" },
-    conditions: [conditionSchema]
+    conditions: [conditionSchema],
   },
   { _id: false }
 );
@@ -24,7 +23,7 @@ const questionSchema = new mongoose.Schema(
     label: String,
     type: String,
     required: Boolean,
-    options: [String],
+    options: [mongoose.Mixed],   
     conditional: rulesSchema,
   },
   { _id: false }
@@ -35,7 +34,7 @@ const formSchema = new mongoose.Schema(
     owner: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     title: String,
     airtableBaseId: String,
-    airtableTableId: String,
+    airtableTableId: String, 
     questions: [questionSchema],
   },
   { timestamps: true }
