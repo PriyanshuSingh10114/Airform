@@ -3,16 +3,18 @@ const qs = require("qs");
 const crypto = require("crypto");
 const User = require("../models/User");
 
-// Helper to generate base64URL encoded string
-const base64URLEncode = (str) => {
-  return str.toString('base64')
+
+const base64URLEncode = (buffer) => {
+  return buffer
+    .toString('base64')
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
 };
 
-const sha256 = (buffer) => {
-  return crypto.createHash('sha256').update(buffer).digest();
+
+const sha256 = (str) => {
+  return crypto.createHash('sha256').update(str).digest();
 };
 
 exports.loginWithAirtable = (req, res) => {
@@ -20,10 +22,14 @@ exports.loginWithAirtable = (req, res) => {
   const state = crypto.randomBytes(32).toString('hex');
   req.session.oauthState = state;
 
-  // 2. Generate PKCE Code Verifier & Challenge
-  const codeVerifier = base64URLEncode(crypto.randomBytes(32));
+
+  const rawVerifier = crypto.randomBytes(32);          // raw bytes
+  const codeVerifier = base64URLEncode(rawVerifier);   // correct verifier
   req.session.codeVerifier = codeVerifier;
-  const codeChallenge = base64URLEncode(sha256(codeVerifier));
+
+  const codeChallenge = base64URLEncode(
+    sha256(codeVerifier)       // correct: hash verifier string
+  );
 
   // 3. Construct URL manually to ensure safe encoding
   const queryParams = [
@@ -138,8 +144,7 @@ exports.oauthCallback = async (req, res) => {
       });
     });
 
-    // Redirect to client with userId
-    return res.redirect(`https://airform.onrender.com/auth/callback?userId=${user._id}`);
+    return res.redirect(`https://airform-tau.vercel.app/auth/callback?userId=${user._id}`);
 
   } catch (err) {
     console.error("\nOAuth Error:", err.response?.data || err.message);
