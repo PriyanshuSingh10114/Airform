@@ -139,7 +139,7 @@ exports.oauthCallback = async (req, res) => {
     });
 
     // Redirect to client with userId
-    return res.redirect(`http://airform.onrender.com/auth/callback?userId=${user._id}`);
+    return res.redirect(`https://airform.onrender.com/auth/callback?userId=${user._id}`);
 
   } catch (err) {
     console.error("\nOAuth Error:", err.response?.data || err.message);
