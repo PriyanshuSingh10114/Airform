@@ -6,10 +6,11 @@ import Navbar from "../../components/Navbar";
 import "./Dashboard.css";
 
 export default function Dashboard() {
-  const { user } = useContext(AuthContext); 
+  // FIXED: AuthContext returns { userId, login, logout }
+  const { userId } = useContext(AuthContext);
+
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
-
 
   const [showModal, setShowModal] = useState(false);
   const [bases, setBases] = useState([]);
@@ -21,10 +22,14 @@ export default function Dashboard() {
 
   const navigate = useNavigate();
 
+  // FIXED: If no login → redirect to home
   useEffect(() => {
-    if (!user) return; 
+    if (!userId) {
+      navigate("/");
+      return;
+    }
     loadForms();
-  }, [user]);
+  }, [userId]);
 
   const loadForms = async () => {
     try {
@@ -36,7 +41,6 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
-
 
   const openCreationModal = async () => {
     setShowModal(true);
@@ -51,12 +55,11 @@ export default function Dashboard() {
     }
   };
 
-
   const handleBaseChange = async (e) => {
     const baseId = e.target.value;
     setSelectedBase(baseId);
-    setTables([]);
     setSelectedTable("");
+    setTables([]);
 
     if (!baseId) return;
 
@@ -71,10 +74,8 @@ export default function Dashboard() {
     }
   };
 
-
   const handleStartBuilding = () => {
     if (selectedBase && selectedTable) {
-
       navigate(`/builder/${selectedBase}/${selectedTable}`);
     }
   };
@@ -116,8 +117,9 @@ export default function Dashboard() {
                   </div>
 
                   <div className="form-card-actions">
+                    {/* FIXED: Use relative navigation instead of hardcoded domain */}
                     <a
-                      href={`https://airform-tau.vercel.app/form/${form._id}`}
+                      href={`/form/${form._id}`}
                       target="_blank"
                       rel="noreferrer"
                       className="btn btn-secondary btn-sm"
