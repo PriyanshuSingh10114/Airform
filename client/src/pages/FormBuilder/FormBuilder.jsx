@@ -114,7 +114,7 @@ export default function FormBuilder() {
       type: f.type,
       required: f.required,
       conditional: f.conditional,
-      options: f.options || []  
+      options: f.options || []  // FIX
     }));
 
     try {
@@ -137,7 +137,6 @@ export default function FormBuilder() {
     }
   };
 
-
   const getEligibleLogicFields = (currentFieldId) => {
     const index = selectedFields.findIndex(f => f.id === currentFieldId);
     return index <= 0 ? [] : selectedFields.slice(0, index);
@@ -151,7 +150,7 @@ export default function FormBuilder() {
 
       <div className="builder-container container-fluid">
 
-
+        {/* HEADER */}
         <header className="builder-header">
           <input
             type="text"
@@ -167,7 +166,6 @@ export default function FormBuilder() {
 
 
         <main className="builder-layout">
-
           <aside className="builder-sidebar card">
             <h3 className="sidebar-title">Available Fields</h3>
             <p className="sidebar-subtitle">Click to add to form</p>
@@ -191,7 +189,6 @@ export default function FormBuilder() {
               })}
             </div>
           </aside>
-
 
           <section className="builder-canvas">
             <div className="canvas-header">
@@ -242,7 +239,6 @@ export default function FormBuilder() {
             )}
           </section>
         </main>
-
 
         {logicFieldId && (
           <div className="modal-overlay">
