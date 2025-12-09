@@ -16,34 +16,33 @@ app.use((req, res, next) => {
 
 app.set("trust proxy", 1);
 
+
 app.use(cors({
   origin: "https://airform-tau.vercel.app",
   credentials: true
 }));
 
+app.options("*", cors());
 
 app.use(
   session({
     name: "airform.sid",
-    secret: "someRandomSecretKey123",
+    secret: process.env.SESSION_SECRET,   
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,   
-      sameSite: "none",     
-      maxAge: 24 * 60 * 60 * 1000
-    }
+      secure: true,
+      sameSite: "none",
+      maxAge: 24 * 60 * 60 * 1000,
+    },
   })
 );
-
 
 app.use(express.json());
 
 const path = require("path");
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
-
-
 
 app.use("/auth", require("./routes/authRoutes"));
 app.use("/forms", require("./routes/formRoutes"));
