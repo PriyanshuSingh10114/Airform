@@ -10,20 +10,18 @@ connectDB();
 const app = express();
 
 app.use((req, res, next) => {
-  // Prevent Airtable from embedding callback page in an iframe
   res.setHeader("X-Frame-Options", "DENY");
   next();
 });
 
 app.set("trust proxy", 1);
-// CORS needs credentials enabled for sessions to work
+
 app.use(cors({
   origin: "https://airform-tau.vercel.app",
   credentials: true
 }));
 
 
-// Session middleware (IMPORTANT for OAuth state)
 app.use(
   session({
     name: "airform.sid",
@@ -32,8 +30,8 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,    // MUST be false for localhost
-      sameSite: "none",     // IMPORTANT → must be lax
+      secure: true,   
+      sameSite: "none",     
       maxAge: 24 * 60 * 60 * 1000
     }
   })
@@ -42,12 +40,11 @@ app.use(
 
 app.use(express.json());
 
-// Serve static files (uploads)
 const path = require("path");
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 
-// Routes
+
 app.use("/auth", require("./routes/authRoutes"));
 app.use("/forms", require("./routes/formRoutes"));
 app.use("/responses", require("./routes/responseRoutes"));
