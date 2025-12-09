@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getForm, submitResponse } from "../../api/api";
-import shouldShowQuestion from "../../utils/logicEngine";   
+import { getForm, submitResponse } from "../../api/api";   
 import "./FormViewer.css";
 
 export default function FormViewer() {
