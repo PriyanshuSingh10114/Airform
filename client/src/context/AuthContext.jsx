@@ -1,20 +1,40 @@
 import { createContext, useState, useEffect } from "react";
+import api from "../api/api"; 
+
 export const AuthContext = createContext();
+
 export default function AuthProvider({ children }) {
-  const [userId, setUserId] = useState(localStorage.getItem("userId") || null);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (id) => {
-    setUserId(id);
-    localStorage.setItem("userId", id);
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data } = await api.get("/auth/me");
+        setUser(data.user);
+      } catch {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkSession();
+  }, []);
+
+  const login = (userData) => {
+    setUser(userData);
   };
 
-  const logout = () => {
-    setUserId(null);
-    localStorage.removeItem("userId");
+  const logout = async () => {
+    await api.post("/auth/logout");
+    setUser(null);
   };
+
+  if (loading) return <div>Loading...</div>;
 
   return (
-    <AuthContext.Provider value={{ userId, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
