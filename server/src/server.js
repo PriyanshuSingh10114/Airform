@@ -18,7 +18,7 @@ app.use((req, res, next) => {
 
 // CORS needs credentials enabled for sessions to work
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: "https://airform-tau.vercel.app/",
   credentials: true
 }));
 
