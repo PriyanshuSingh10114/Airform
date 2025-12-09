@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getForm, submitResponse } from "../../api/api";
-import { shouldShowQuestion } from "../../utils/logicEngine";
+import shouldShowQuestion from "../../utils/logicEngine"; // <- fixed: default import
 import "./FormViewer.css";
 
 export default function FormViewer() {
@@ -27,7 +27,7 @@ export default function FormViewer() {
       const initialAnswers = {};
       const initialFiles = {};
 
-      data.questions.forEach((q) => {
+      (data.questions || []).forEach((q) => {
         if (q.type === "multipleSelects") initialAnswers[q.questionKey] = [];
         else initialAnswers[q.questionKey] = "";
 
@@ -70,21 +70,27 @@ export default function FormViewer() {
     e.preventDefault();
     setError("");
 
-    for (const q of form.questions) {
-      if (shouldShowQuestion(q.conditional, answers)) {
-        if (q.required) {
-          const val = answers[q.questionKey];
-          const fileVal = files[q.questionKey];
+    if (!form) {
+      setError("Form not loaded.");
+      return;
+    }
 
-          if (q.type === "multipleAttachments") {
-            if (!fileVal || fileVal.length === 0) {
-              setError(`"${q.label}" requires at least one file.`);
-              return;
-            }
-          } else if (!val || (Array.isArray(val) && val.length === 0)) {
-            setError(`"${q.label}" is required.`);
+    // Validation
+    for (const q of form.questions) {
+      if (!shouldShowQuestion(q.conditional, answers)) continue;
+
+      if (q.required) {
+        const val = answers[q.questionKey];
+        const fileVal = files[q.questionKey];
+
+        if (q.type === "multipleAttachments") {
+          if (!fileVal || fileVal.length === 0) {
+            setError(`"${q.label}" requires at least one file.`);
             return;
           }
+        } else if (!val || (Array.isArray(val) && val.length === 0)) {
+          setError(`"${q.label}" is required.`);
+          return;
         }
       }
     }
@@ -92,23 +98,26 @@ export default function FormViewer() {
     try {
       setSubmitting(true);
 
+      // Build FormData for submission
       const formData = new FormData();
 
+      // Add text answers
       Object.entries(answers).forEach(([key, value]) => {
         if (Array.isArray(value)) {
           formData.append(key, JSON.stringify(value));
         } else {
-          formData.append(key, value);
+          formData.append(key, value ?? "");
         }
       });
 
+      // Add files
       Object.entries(files).forEach(([key, fileList]) => {
-        if (fileList.length > 0) {
+        if (Array.isArray(fileList) && fileList.length > 0) {
           fileList.forEach((file) => formData.append(key, file));
         }
       });
 
-
+      // Default status
       formData.append("status", "Pending");
 
       await submitResponse(formId, formData);
@@ -140,10 +149,14 @@ export default function FormViewer() {
           {error && <div className="error-banner">{error}</div>}
 
           <form onSubmit={handleSubmit} className="form-content">
-
-            {form.questions.map((q) => {
+            {(form.questions || []).map((q) => {
               const isVisible = shouldShowQuestion(q.conditional, answers);
               if (!isVisible) return null;
+
+              // q.options could be array of strings or array of objects
+              const options = Array.isArray(q.options)
+                ? q.options.map((opt) => (typeof opt === "object" ? (opt.name ?? opt.value ?? String(opt)) : opt))
+                : [];
 
               return (
                 <div key={q.questionKey} className="question-block">
@@ -151,55 +164,49 @@ export default function FormViewer() {
                     {q.label} {q.required && <span className="req">*</span>}
                   </label>
 
-
+                  {/* Text input */}
                   {q.type === "singleLineText" && (
                     <input
                       type="text"
                       className="form-input"
                       value={answers[q.questionKey] || ""}
-                      onChange={(e) =>
-                        handleChange(q.questionKey, e.target.value)
-                      }
+                      onChange={(e) => handleChange(q.questionKey, e.target.value)}
                       placeholder="Type your answer..."
                     />
                   )}
 
-       
+                  {/* Textarea */}
                   {q.type === "multilineText" && (
                     <textarea
                       className="form-textarea"
                       value={answers[q.questionKey] || ""}
-                      onChange={(e) =>
-                        handleChange(q.questionKey, e.target.value)
-                      }
+                      onChange={(e) => handleChange(q.questionKey, e.target.value)}
                       rows={4}
                       placeholder="Type your answer..."
                     />
                   )}
 
-      
+                  {/* Single select */}
                   {q.type === "singleSelect" && (
                     <select
                       className="form-select"
                       value={answers[q.questionKey] || ""}
-                      onChange={(e) =>
-                        handleChange(q.questionKey, e.target.value)
-                      }
+                      onChange={(e) => handleChange(q.questionKey, e.target.value)}
                     >
                       <option value="">Select an option</option>
-                      {q.options?.map((opt) => (
-                        <option key={opt.id || opt} value={opt.name || opt}>
-                          {opt.name || opt}
+                      {options.map((opt, i) => (
+                        <option key={i} value={opt}>
+                          {opt}
                         </option>
                       ))}
                     </select>
                   )}
 
-
+                  {/* Multi select */}
                   {q.type === "multipleSelects" && (
                     <div className="multi-select-options">
-                      {["Approved", "Rejected", "Pending", "Reviewed"].map((opt) => (
-                        <label key={opt} className="checkbox-label">
+                      {(options.length ? options : ["Approved", "Rejected", "Pending", "Reviewed"]).map((opt, i) => (
+                        <label key={i} className="checkbox-label">
                           <input
                             type="checkbox"
                             checked={answers[q.questionKey]?.includes(opt)}
@@ -211,16 +218,13 @@ export default function FormViewer() {
                     </div>
                   )}
 
-
                   {/* File Upload */}
                   {q.type === "multipleAttachments" && (
                     <div className="file-upload-block">
                       <input
                         type="file"
                         multiple
-                        onChange={(e) =>
-                          handleFileChange(q.questionKey, e.target.files)
-                        }
+                        onChange={(e) => handleFileChange(q.questionKey, e.target.files)}
                       />
                       {files[q.questionKey]?.length > 0 && (
                         <ul className="file-preview-list">
@@ -236,11 +240,7 @@ export default function FormViewer() {
             })}
 
             <div className="form-footer">
-              <button
-                type="submit"
-                className="btn btn-primary btn-block"
-                disabled={submitting}
-              >
+              <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
                 {submitting ? "Submitting..." : "Submit Response"}
               </button>
             </div>
