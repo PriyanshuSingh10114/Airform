@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getTables, createForm } from "../../api/api";
@@ -14,10 +15,9 @@ export default function FormBuilder() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  
+  // Logic Modal State
   const [logicFieldId, setLogicFieldId] = useState(null);
   const [logicRules, setLogicRules] = useState({ logic: "AND", conditions: [] });
-  const [tableName, setTableName] = useState(null);
 
   useEffect(() => {
     loadFields();
@@ -25,27 +25,13 @@ export default function FormBuilder() {
 
   const loadFields = async () => {
     try {
-      setLoading(true);
       const tables = await getTables(baseId);
-      const table = (tables || []).find((t) => t.id === tableId);
-      if (!table) {
+      const table = tables.find(t => t.id === tableId);
+      if (table) {
+        setFields(table.fields);
+      } else {
         alert("Table not found or access denied.");
-        return;
       }
-
-      setTableName(table.name);
-
-      
-      setFields(
-        (table.fields || []).map((f) => ({
-          ...f,
-          
-          options:
-            f.options?.choices?.map((c) => (typeof c === "object" ? c.name ?? c.value ?? "" : c)) ||
-            f.options ||
-            [],
-        }))
-      );
     } catch (err) {
       console.error("Error loading fields:", err);
     } finally {
@@ -65,19 +51,20 @@ export default function FormBuilder() {
           label: field.name,
           type: field.type,
           required: false,
-          conditional: { logic: "AND", conditions: [] },
-          options: field.options || [],
-        },
+          conditional: { logic: "AND", conditions: [] }
+        }
       ]);
     }
   };
 
   const updateField = (id, updates) => {
-    setSelectedFields((prev) => prev.map((f) => (f.id === id ? { ...f, ...updates } : f)));
+    setSelectedFields((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, ...updates } : f))
+    );
   };
 
   const openLogicEditor = (fieldId) => {
-    const field = selectedFields.find((f) => f.id === fieldId);
+    const field = selectedFields.find(f => f.id === fieldId);
     setLogicFieldId(fieldId);
     setLogicRules(field.conditional || { logic: "AND", conditions: [] });
   };
@@ -90,7 +77,7 @@ export default function FormBuilder() {
   const addCondition = () => {
     setLogicRules({
       ...logicRules,
-      conditions: [...logicRules.conditions, { questionKey: "", operator: "equals", value: "" }],
+      conditions: [...logicRules.conditions, { questionKey: "", operator: "equals", value: "" }]
     });
   };
 
@@ -116,8 +103,7 @@ export default function FormBuilder() {
       label: f.label,
       type: f.type,
       required: f.required,
-      conditional: f.conditional,
-      options: f.options || [],
+      conditional: f.conditional
     }));
 
     try {
@@ -125,8 +111,7 @@ export default function FormBuilder() {
         title: formName,
         airtableBaseId: baseId,
         airtableTableId: tableId,
-        airtableTableName: tableName || null, 
-        questions,
+        questions
       });
       navigate("/dashboard");
     } catch (err) {
@@ -137,9 +122,9 @@ export default function FormBuilder() {
     }
   };
 
-
+  // Get eligible fields for logic (fields appearing BEFORE the current one)
   const getEligibleLogicFields = (currentFieldId) => {
-    const index = selectedFields.findIndex((f) => f.id === currentFieldId);
+    const index = selectedFields.findIndex(f => f.id === currentFieldId);
     if (index <= 0) return [];
     return selectedFields.slice(0, index);
   };
@@ -169,9 +154,13 @@ export default function FormBuilder() {
             <p className="sidebar-subtitle">Click to add to form</p>
             <div className="fields-list">
               {fields.map((f) => {
-                const isSelected = selectedFields.find((sf) => sf.id === f.id);
+                const isSelected = selectedFields.find(sf => sf.id === f.id);
                 return (
-                  <div key={f.id} className={`field-item ${isSelected ? "selected" : ""}`} onClick={() => toggleField(f)}>
+                  <div
+                    key={f.id}
+                    className={`field-item ${isSelected ? "selected" : ""}`}
+                    onClick={() => toggleField(f)}
+                  >
                     <div className="field-info">
                       <span className="field-name">{f.name}</span>
                       <span className="field-type-badge">{f.type}</span>
@@ -198,16 +187,28 @@ export default function FormBuilder() {
                   <div key={f.id} className="canvas-field-card card">
                     <div className="field-edit-header">
                       <span className="field-number">{index + 1}</span>
-                      <input type="text" value={f.label} onChange={(e) => updateField(f.id, { label: e.target.value })} className="field-label-edit" />
+                      <input
+                        type="text"
+                        value={f.label}
+                        onChange={(e) => updateField(f.id, { label: e.target.value })}
+                        className="field-label-edit"
+                      />
                     </div>
 
                     <div className="field-controls">
                       <label className="checkbox-label">
-                        <input type="checkbox" checked={f.required} onChange={(e) => updateField(f.id, { required: e.target.checked })} />
+                        <input
+                          type="checkbox"
+                          checked={f.required}
+                          onChange={(e) => updateField(f.id, { required: e.target.checked })}
+                        />
                         Required
                       </label>
 
-                      <button className="btn btn-secondary btn-sm" onClick={() => openLogicEditor(f.id)}>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => openLogicEditor(f.id)}
+                      >
                         Conditional Logic {f.conditional?.conditions.length > 0 && `(${f.conditional.conditions.length})`}
                       </button>
                     </div>
@@ -227,41 +228,45 @@ export default function FormBuilder() {
               <div className="logic-conditions">
                 {logicRules.conditions.map((cond, idx) => (
                   <div key={idx} className="condition-row">
-                    <select className="form-select" value={cond.questionKey} onChange={(e) => updateCondition(idx, "questionKey", e.target.value)}>
+                    <select
+                      className="form-select"
+                      value={cond.questionKey}
+                      onChange={(e) => updateCondition(idx, "questionKey", e.target.value)}
+                    >
                       <option value="">Select Question</option>
-                      {getEligibleLogicFields(logicFieldId).map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.label}
-                        </option>
+                      {getEligibleLogicFields(logicFieldId).map(f => (
+                        <option key={f.id} value={f.id}>{f.label}</option>
                       ))}
                     </select>
 
-                    <select className="form-select" value={cond.operator} onChange={(e) => updateCondition(idx, "operator", e.target.value)}>
+                    <select
+                      className="form-select"
+                      value={cond.operator}
+                      onChange={(e) => updateCondition(idx, "operator", e.target.value)}
+                    >
                       <option value="equals">Equals</option>
                       <option value="notEquals">Not Equals</option>
                       <option value="contains">Contains</option>
                     </select>
 
-                    <input type="text" className="form-input" value={cond.value} onChange={(e) => updateCondition(idx, "value", e.target.value)} placeholder="Value" />
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={cond.value}
+                      onChange={(e) => updateCondition(idx, "value", e.target.value)}
+                      placeholder="Value"
+                    />
 
-                    <button className="btn-icon-danger" onClick={() => removeCondition(idx)}>
-                      ×
-                    </button>
+                    <button className="btn-icon-danger" onClick={() => removeCondition(idx)}>×</button>
                   </div>
                 ))}
               </div>
 
               <div className="logic-footer">
-                <button className="btn-link" onClick={addCondition}>
-                  + Add Condition
-                </button>
+                <button className="btn-link" onClick={addCondition}>+ Add Condition</button>
                 <div className="modal-actions">
-                  <button className="btn btn-secondary" onClick={() => setLogicFieldId(null)}>
-                    Cancel
-                  </button>
-                  <button className="btn btn-primary" onClick={saveLogic}>
-                    Save Rules
-                  </button>
+                  <button className="btn btn-secondary" onClick={() => setLogicFieldId(null)}>Cancel</button>
+                  <button className="btn btn-primary" onClick={saveLogic}>Save Rules</button>
                 </div>
               </div>
             </div>
@@ -271,3 +276,4 @@ export default function FormBuilder() {
     </div>
   );
 }
+form builder.jsx
