@@ -14,7 +14,6 @@ export default function FormBuilder() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Logic Modal State
   const [logicFieldId, setLogicFieldId] = useState(null);
   const [logicRules, setLogicRules] = useState({ logic: "AND", conditions: [] });
 
@@ -26,11 +25,17 @@ export default function FormBuilder() {
     try {
       const tables = await getTables(baseId);
       const table = tables.find(t => t.id === tableId);
-      if (table) {
-        setFields(table.fields);
-      } else {
+
+      if (!table) {
         alert("Table not found or access denied.");
+        return;
       }
+
+      setFields(table.fields.map(f => ({
+        ...f,
+        tableName: table.name
+      })));
+
     } catch (err) {
       console.error("Error loading fields:", err);
     } finally {
@@ -40,6 +45,7 @@ export default function FormBuilder() {
 
   const toggleField = (field) => {
     const exists = selectedFields.find((f) => f.id === field.id);
+
     if (exists) {
       setSelectedFields(selectedFields.filter((f) => f.id !== field.id));
     } else {
@@ -50,15 +56,17 @@ export default function FormBuilder() {
           label: field.name,
           type: field.type,
           required: false,
-          conditional: { logic: "AND", conditions: [] }
+          conditional: { logic: "AND", conditions: [] },
+
+          options: field.options?.choices?.map(c => c.name) || []
         }
       ]);
     }
   };
 
   const updateField = (id, updates) => {
-    setSelectedFields((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, ...updates } : f))
+    setSelectedFields(prev =>
+      prev.map(f => (f.id === id ? { ...f, ...updates } : f))
     );
   };
 
@@ -81,14 +89,16 @@ export default function FormBuilder() {
   };
 
   const updateCondition = (index, key, value) => {
-    const newConditions = [...logicRules.conditions];
-    newConditions[index] = { ...newConditions[index], [key]: value };
-    setLogicRules({ ...logicRules, conditions: newConditions });
+    const updated = [...logicRules.conditions];
+    updated[index] = { ...updated[index], [key]: value };
+    setLogicRules({ ...logicRules, conditions: updated });
   };
 
   const removeCondition = (index) => {
-    const newConditions = logicRules.conditions.filter((_, i) => i !== index);
-    setLogicRules({ ...logicRules, conditions: newConditions });
+    setLogicRules({
+      ...logicRules,
+      conditions: logicRules.conditions.filter((_, i) => i !== index)
+    });
   };
 
   const handleSaveForm = async () => {
@@ -96,13 +106,15 @@ export default function FormBuilder() {
     if (selectedFields.length === 0) return alert("Please select at least one field.");
 
     setSaving(true);
-    const questions = selectedFields.map((f) => ({
+
+    const questions = selectedFields.map(f => ({
       questionKey: f.id,
       airtableFieldId: f.id,
       label: f.label,
       type: f.type,
       required: f.required,
-      conditional: f.conditional
+      conditional: f.conditional,
+      options: f.options || []  
     }));
 
     try {
@@ -110,8 +122,12 @@ export default function FormBuilder() {
         title: formName,
         airtableBaseId: baseId,
         airtableTableId: tableId,
+
+        airtableTableName: fields[0]?.tableName || null,
+
         questions
       });
+
       navigate("/dashboard");
     } catch (err) {
       console.error(err);
@@ -121,11 +137,10 @@ export default function FormBuilder() {
     }
   };
 
-  // Get eligible fields for logic (fields appearing BEFORE the current one)
+
   const getEligibleLogicFields = (currentFieldId) => {
     const index = selectedFields.findIndex(f => f.id === currentFieldId);
-    if (index <= 0) return [];
-    return selectedFields.slice(0, index);
+    return index <= 0 ? [] : selectedFields.slice(0, index);
   };
 
   if (loading) return <div className="loading-state">Loading fields...</div>;
@@ -133,7 +148,10 @@ export default function FormBuilder() {
   return (
     <div className="builder-wrapper">
       <Navbar />
+
       <div className="builder-container container-fluid">
+
+
         <header className="builder-header">
           <input
             type="text"
@@ -147,13 +165,16 @@ export default function FormBuilder() {
           </button>
         </header>
 
+
         <main className="builder-layout">
+
           <aside className="builder-sidebar card">
             <h3 className="sidebar-title">Available Fields</h3>
             <p className="sidebar-subtitle">Click to add to form</p>
+
             <div className="fields-list">
-              {fields.map((f) => {
-                const isSelected = selectedFields.find(sf => sf.id === f.id);
+              {fields.map(f => {
+                const isSelected = selectedFields.some(sf => sf.id === f.id);
                 return (
                   <div
                     key={f.id}
@@ -171,10 +192,12 @@ export default function FormBuilder() {
             </div>
           </aside>
 
+
           <section className="builder-canvas">
             <div className="canvas-header">
               <h3>Form Preview</h3>
             </div>
+
             {selectedFields.length === 0 ? (
               <div className="empty-canvas">
                 <div className="empty-icon">📝</div>
@@ -208,7 +231,9 @@ export default function FormBuilder() {
                         className="btn btn-secondary btn-sm"
                         onClick={() => openLogicEditor(f.id)}
                       >
-                        Conditional Logic {f.conditional?.conditions.length > 0 && `(${f.conditional.conditions.length})`}
+                        Conditional Logic{" "}
+                        {f.conditional?.conditions.length > 0 &&
+                          `(${f.conditional.conditions.length})`}
                       </button>
                     </div>
                   </div>
@@ -217,6 +242,7 @@ export default function FormBuilder() {
             )}
           </section>
         </main>
+
 
         {logicFieldId && (
           <div className="modal-overlay">
@@ -256,13 +282,16 @@ export default function FormBuilder() {
                       placeholder="Value"
                     />
 
-                    <button className="btn-icon-danger" onClick={() => removeCondition(idx)}>×</button>
+                    <button className="btn-icon-danger" onClick={() => removeCondition(idx)}>
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
 
               <div className="logic-footer">
                 <button className="btn-link" onClick={addCondition}>+ Add Condition</button>
+
                 <div className="modal-actions">
                   <button className="btn btn-secondary" onClick={() => setLogicFieldId(null)}>Cancel</button>
                   <button className="btn btn-primary" onClick={saveLogic}>Save Rules</button>
@@ -271,6 +300,7 @@ export default function FormBuilder() {
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
