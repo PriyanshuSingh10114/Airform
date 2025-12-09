@@ -1,0 +1,118 @@
+.responses-wrapper {
+  background-color: var(--bg-body);
+  min-height: calc(100vh - 60px);
+  padding-top: 2rem;
+}
+
+.responses-container {
+  max-width: 1400px;
+}
+
+.responses-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 2rem;
+}
+
+.responses-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 0.25rem;
+}
+
+.responses-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+}
+
+.response-count-badge {
+  background-color: var(--bg-card);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.table-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  padding: 0;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.responses-table {
+  width: 100%;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+.responses-table th,
+.responses-table td {
+  padding: 1rem 1.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.responses-table th {
+  background: var(--bg-subtle);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.responses-table td {
+  color: var(--text-main);
+  font-size: 0.95rem;
+}
+
+.responses-table tr:last-child td {
+  border-bottom: none;
+}
+
+.responses-table tr:hover {
+  background-color: var(--bg-subtle);
+}
+
+.timestamp-cell {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.empty-state-small {
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* Status Badge */
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-badge.pending {
+  background-color: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #ffedd5;
+}
+
+.status-badge.synced {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #dcfce7;
+}

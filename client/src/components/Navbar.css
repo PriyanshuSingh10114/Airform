@@ -1,0 +1,32 @@
+.nav {
+  height: 60px;
+  background: #192645;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 25px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.nav-logo {
+  font-size: 20px;
+  font-weight: bold;
+  color: white;
+  text-decoration: none;
+}
+
+.nav-link {
+  margin-left: 20px;
+  text-decoration: none;
+  color: white;
+  font-weight: bold;
+  font-size: 20px;
+}
+
+.nav-logo:hover{
+  color: #2d7ff9;
+}
+
+.nav-link:hover {
+  color: #2d7ff9;
+}
