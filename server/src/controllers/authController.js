@@ -18,20 +18,19 @@ const sha256 = (str) => {
 };
 
 exports.loginWithAirtable = (req, res) => {
-  // 1. Generate robust State (CSRF protection)
+
   const state = crypto.randomBytes(32).toString('hex');
   req.session.oauthState = state;
 
 
-  const rawVerifier = crypto.randomBytes(32);          // raw bytes
-  const codeVerifier = base64URLEncode(rawVerifier);   // correct verifier
+  const rawVerifier = crypto.randomBytes(32);          
+  const codeVerifier = base64URLEncode(rawVerifier);   
   req.session.codeVerifier = codeVerifier;
 
   const codeChallenge = base64URLEncode(
-    sha256(codeVerifier)       // correct: hash verifier string
+    sha256(codeVerifier)       
   );
 
-  // 3. Construct URL manually to ensure safe encoding
   const queryParams = [
     `response_type=code`,
     `client_id=${process.env.AIRTABLE_CLIENT_ID}`,
@@ -71,19 +70,18 @@ exports.oauthCallback = async (req, res) => {
     });
   }
 
-  // validate CSRF state
+  
   if (!state || state !== req.session.oauthState) {
     return res.status(400).send("Invalid state parameter (CSRF mismatch).");
   }
 
   const codeVerifier = req.session.codeVerifier;
 
-  // cleanup session
+
   delete req.session.oauthState;
   delete req.session.codeVerifier;
 
   try {
-    // Exchange authorization code for tokens
     const body = qs.stringify({
       grant_type: "authorization_code",
       code,
@@ -108,14 +106,13 @@ exports.oauthCallback = async (req, res) => {
 
     const { access_token, refresh_token } = tokenRes.data;
 
-    // Fetch user profile from Airtable
     const meRes = await axios.get("https://api.airtable.com/v0/meta/whoami", {
       headers: { Authorization: `Bearer ${access_token}` }
     });
 
     const airtableUser = meRes.data;
 
-    // Find or create local user
+
     let user = await User.findOne({ airtableUserId: airtableUser.id });
 
     if (!user) {
@@ -129,13 +126,12 @@ exports.oauthCallback = async (req, res) => {
         }
       });
     } else {
-      // update tokens if user exists
+
       user.oauth.accessToken = access_token;
       user.oauth.refreshToken = refresh_token;
       await user.save();
     }
 
-    // Save user ID in session
     req.session.userId = user._id;
     await new Promise((resolve, reject) => {
       req.session.save((err) => {
