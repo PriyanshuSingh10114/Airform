@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getResponses, getForm } from "../../api/api";
+import { getResponses, getForm, updateResponseStatus } from "../../api/api";
 import Navbar from "../../components/Navbar";
 import "./Responses.css";
 
@@ -17,6 +17,7 @@ export default function Responses() {
           getResponses(formId),
           getForm(formId),
         ]);
+
         setResponses(resData || []);
         setForm(formData);
       } catch (err) {
@@ -30,7 +31,6 @@ export default function Responses() {
 
   if (loading) return <div className="loading-state">Loading data...</div>;
 
-  // Create column mapping
   const columns =
     form?.questions.map((q) => ({
       key: q.questionKey,
@@ -38,16 +38,14 @@ export default function Responses() {
       type: q.type,
     })) || [];
 
-  // --- Renders answer for each cell ---
+  // Render any cell value properly
   const renderAnswer = (value, type) => {
     if (!value) return "-";
 
-    // MULTIPLE SELECT
     if (Array.isArray(value) && type !== "multipleAttachments") {
       return value.join(", ");
     }
 
-    // FILE ATTACHMENTS
     if (type === "multipleAttachments") {
       if (!Array.isArray(value) || value.length === 0) return "No files";
 
@@ -61,7 +59,7 @@ export default function Responses() {
                 rel="noopener noreferrer"
                 className="file-link"
               >
-                📎 {file.name || "Download file"}
+                📎 {file.name || "Download File"}
               </a>
             </div>
           ))}
@@ -69,13 +67,26 @@ export default function Responses() {
       );
     }
 
-    // OBJECT (fallback)
-    if (typeof value === "object") {
-      return JSON.stringify(value);
-    }
+    if (typeof value === "object") return JSON.stringify(value);
 
-    // NORMAL TEXT
     return value;
+  };
+
+  // Handle status update
+  const handleStatusChange = async (responseId, newStatus) => {
+    try {
+      await updateResponseStatus(responseId, newStatus);
+
+      // Update state instantly
+      setResponses((prev) =>
+        prev.map((r) =>
+          r._id === responseId ? { ...r, status: newStatus } : r
+        )
+      );
+    } catch (err) {
+      console.error("Failed to update status:", err);
+      alert("Failed to update status");
+    }
   };
 
   return (
@@ -119,12 +130,24 @@ export default function Responses() {
                         <td className="timestamp-cell">
                           {new Date(r.createdAt).toLocaleString()}
                         </td>
+
+                        {/* Editable Status Dropdown */}
                         <td>
-                          <span className={`status-badge ${r.status?.toLowerCase() || "pending"}`}>
-                            {r.status || "Synced"}
-                          </span>
+                          <select
+                            className="status-dropdown"
+                            value={r.status || "Pending"}
+                            onChange={(e) =>
+                              handleStatusChange(r._id, e.target.value)
+                            }
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                            <option value="Reviewed">Reviewed</option>
+                          </select>
                         </td>
 
+                        {/* Dynamic Answer Columns */}
                         {columns.map((col) => {
                           const value = r.answers[col.key];
                           return (
