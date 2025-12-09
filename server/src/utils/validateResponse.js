@@ -9,27 +9,26 @@ module.exports = function validateResponse(form, answers) {
 
     if (!visible) continue;
 
-    if (q.required && !val) {
+    if (q.required && (!val || (Array.isArray(val) && val.length === 0))) {
       errors.push(`${q.label} is required`);
       continue;
     }
 
-    if (q.type === "single_select" && val && !q.options.includes(val)) {
-      errors.push(`${q.label} has invalid value`);
+    if (q.type === "singleSelect" && val) {
+      const valid = q.options.some(opt => (opt.name || opt) === val);
+      if (!valid) errors.push(`${q.label} has invalid value`);
     }
 
-    if (q.type === "multi_select" && val) {
+    if (q.type === "multipleSelects" && val) {
       if (!Array.isArray(val)) {
         errors.push(`${q.label} must be an array`);
       } else {
         val.forEach(v => {
-          if (!q.options.includes(v)) {
-            errors.push(`${q.label} contains invalid value`);
-          }
+          const valid = q.options.some(opt => (opt.name || opt) === v);
+          if (!valid) errors.push(`${q.label} contains invalid value`);
         });
       }
     }
   }
-
   return errors;
 };
