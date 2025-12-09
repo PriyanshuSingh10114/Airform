@@ -4,10 +4,9 @@ const { requireAuth } = require("../middleware/authMiddleware");
 
 router.get("/bases", requireAuth, getBases);
 router.get("/bases/:baseId/tables", requireAuth, getTables);
+
 router.post("/", requireAuth, createForm);
 router.get("/my-forms", requireAuth, getForms);
 
-
-router.get("/:id", getForm);
-
+router.get("/:formId", getForm);
 module.exports = router;
