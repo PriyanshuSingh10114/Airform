@@ -144,7 +144,8 @@ exports.oauthCallback = async (req, res) => {
       });
     });
 
-    return res.redirect(`https://airform-tau.vercel.app/auth/callback?userId=${user._id}`);
+    return res.redirect(`https://airform-tau.vercel.app/?userId=${user._id}`);
+
 
   } catch (err) {
     console.error("\nOAuth Error:", err.response?.data || err.message);
