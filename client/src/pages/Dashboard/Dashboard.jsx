@@ -1,17 +1,14 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMyForms, getBases, getTables } from "../../api/api";
-import { AuthContext } from "../../context/AuthProvider";
 import Navbar from "../../components/Navbar";
 import "./Dashboard.css";
 
 export default function Dashboard() {
-  // FIXED: AuthContext returns { userId, login, logout }
-  const { userId } = useContext(AuthContext);
-
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Creation Modal State
   const [showModal, setShowModal] = useState(false);
   const [bases, setBases] = useState([]);
   const [selectedBase, setSelectedBase] = useState("");
@@ -22,14 +19,9 @@ export default function Dashboard() {
 
   const navigate = useNavigate();
 
-  // FIXED: If no login → redirect to home
   useEffect(() => {
-    if (!userId) {
-      navigate("/");
-      return;
-    }
     loadForms();
-  }, [userId]);
+  }, []);
 
   const loadForms = async () => {
     try {
@@ -60,7 +52,6 @@ export default function Dashboard() {
     setSelectedBase(baseId);
     setSelectedTable("");
     setTables([]);
-
     if (!baseId) return;
 
     setLoadingTables(true);
@@ -90,7 +81,6 @@ export default function Dashboard() {
               <h1 className="dashboard-title">My Forms</h1>
               <p className="dashboard-subtitle">Manage and track your Airtable forms.</p>
             </div>
-
             <button className="btn btn-primary" onClick={openCreationModal}>
               + Create New Form
             </button>
@@ -102,10 +92,8 @@ export default function Dashboard() {
             <div className="empty-state">
               <div className="empty-icon">📂</div>
               <h3>No forms yet</h3>
-              <p>Create your first form connected to Airtable Logic.</p>
-              <button className="btn btn-secondary" onClick={openCreationModal}>
-                Create Form
-              </button>
+              <p>Create your first form connected to Airtable logic.</p>
+              <button className="btn btn-secondary" onClick={openCreationModal}>Create Form</button>
             </div>
           ) : (
             <div className="forms-grid">
@@ -115,24 +103,9 @@ export default function Dashboard() {
                     <h3 className="form-title">{form.title}</h3>
                     <span className="form-badge">Active</span>
                   </div>
-
                   <div className="form-card-actions">
-                    {/* FIXED: Use relative navigation instead of hardcoded domain */}
-                    <a
-                      href={`/form/${form._id}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn btn-secondary btn-sm"
-                    >
-                      Preview
-                    </a>
-
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => navigate(`/responses/${form._id}`)}
-                    >
-                      Responses
-                    </button>
+                    <a href={`/form/${form._id}`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">Preview</a>
+                    <button className="btn btn-primary btn-sm" onClick={() => navigate(`/responses/${form._id}`)}>Responses</button>
                   </div>
                 </div>
               ))}
@@ -146,17 +119,10 @@ export default function Dashboard() {
 
                 <div className="form-group">
                   <label>Select Airtable Base</label>
-                  <select
-                    className="form-select"
-                    value={selectedBase}
-                    onChange={handleBaseChange}
-                    disabled={loadingBases}
-                  >
+                  <select className="form-select" value={selectedBase} onChange={handleBaseChange} disabled={loadingBases}>
                     <option value="">-- Select Base --</option>
-                    {bases.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
+                    {bases.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
                     ))}
                   </select>
                   {loadingBases && <span className="loading-text">Loading bases...</span>}
@@ -165,17 +131,10 @@ export default function Dashboard() {
                 {selectedBase && (
                   <div className="form-group">
                     <label>Select Table</label>
-                    <select
-                      className="form-select"
-                      value={selectedTable}
-                      onChange={(e) => setSelectedTable(e.target.value)}
-                      disabled={loadingTables}
-                    >
+                    <select className="form-select" value={selectedTable} onChange={(e) => setSelectedTable(e.target.value)} disabled={loadingTables}>
                       <option value="">-- Select Table --</option>
-                      {tables.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
-                        </option>
+                      {tables.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
                     </select>
                     {loadingTables && <span className="loading-text">Loading tables...</span>}
@@ -183,10 +142,7 @@ export default function Dashboard() {
                 )}
 
                 <div className="modal-actions">
-                  <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                    Cancel
-                  </button>
-
+                  <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                   <button
                     className="btn btn-primary"
                     disabled={!selectedBase || !selectedTable}
@@ -203,3 +159,5 @@ export default function Dashboard() {
     </>
   );
 }
+
+dashboard.jsx
