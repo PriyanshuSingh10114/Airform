@@ -30,12 +30,12 @@ class AirtableService {
         }
     }
 
-    async createRecord(baseId, tableId, fields) {
+    async createRecord(baseId, tableName, fields) {
         try {
-            const { data } = await this.client.post(`/${baseId}/${tableId}`, {
-                records: [{ fields }]
+            const { data } = await this.client.post(`/${baseId}/${tableName}`, {
+                fields
             });
-            return data.records[0];
+            return data;
         } catch (error) {
             console.error("Error creating record:", error.response?.data || error.message);
             throw new Error("Failed to create Airtable record");
@@ -47,7 +47,11 @@ class AirtableService {
             const params = {};
             if (cursor) params.cursor = cursor;
 
-            const { data } = await this.client.get(`/bases/${baseId}/webhooks/${webhookId}/payloads`, { params });
+            const { data } = await this.client.get(
+                `/bases/${baseId}/webhooks/${webhookId}/payloads`,
+                { params }
+            );
+
             return data;
         } catch (error) {
             console.error("Error fetching webhook payloads:", error.response?.data || error.message);
