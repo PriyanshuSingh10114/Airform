@@ -15,10 +15,10 @@ app.use((req, res, next) => {
   next();
 });
 
-
+app.set("trust proxy", 1);
 // CORS needs credentials enabled for sessions to work
 app.use(cors({
-  origin: "https://airform-tau.vercel.app/",
+  origin: "https://airform-tau.vercel.app",
   credentials: true
 }));
 
@@ -32,8 +32,9 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: false,       // MUST be false for localhost
-      sameSite: "lax",     // IMPORTANT → must be lax
+      secure: true,    // MUST be false for localhost
+      sameSite: "none",     // IMPORTANT → must be lax
+      maxAge: 24 * 60 * 60 * 1000
     }
   })
 );
