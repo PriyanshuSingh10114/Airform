@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getForm, submitResponse } from "../../api/api";   
+import { getForm, submitResponse } from "../../api/api";
+import { shouldShowQuestion } from "../../utils/logicEngine";
 import "./FormViewer.css";
 
 export default function FormViewer() {
@@ -23,17 +24,17 @@ export default function FormViewer() {
       const data = await getForm(formId);
       setForm(data);
 
-      const initialAns = {};
+      const initialAnswers = {};
       const initialFiles = {};
 
       data.questions.forEach((q) => {
-        if (q.type === "multipleSelects") initialAns[q.questionKey] = [];
-        else initialAns[q.questionKey] = "";
+        if (q.type === "multipleSelects") initialAnswers[q.questionKey] = [];
+        else initialAnswers[q.questionKey] = "";
 
         if (q.type === "multipleAttachments") initialFiles[q.questionKey] = [];
       });
 
-      setAnswers(initialAns);
+      setAnswers(initialAnswers);
       setFiles(initialFiles);
     } catch (err) {
       console.error("Failed to load form:", err);
@@ -52,8 +53,9 @@ export default function FormViewer() {
       const current = prev[key] || [];
       if (current.includes(option)) {
         return { ...prev, [key]: current.filter((o) => o !== option) };
+      } else {
+        return { ...prev, [key]: [...current, option] };
       }
-      return { ...prev, [key]: [...current, option] };
     });
   };
 
@@ -68,31 +70,30 @@ export default function FormViewer() {
     e.preventDefault();
     setError("");
 
-    // Validation
     for (const q of form.questions) {
-      if (!shouldShowQuestion(q.conditional, answers)) continue;
+      if (shouldShowQuestion(q.conditional, answers)) {
+        if (q.required) {
+          const val = answers[q.questionKey];
+          const fileVal = files[q.questionKey];
 
-      const val = answers[q.questionKey];
-      const fileVal = files[q.questionKey];
-
-      if (q.required) {
-        if (q.type === "multipleAttachments") {
-          if (!fileVal || fileVal.length === 0) {
-            setError(`"${q.label}" requires at least one file.`);
+          if (q.type === "multipleAttachments") {
+            if (!fileVal || fileVal.length === 0) {
+              setError(`"${q.label}" requires at least one file.`);
+              return;
+            }
+          } else if (!val || (Array.isArray(val) && val.length === 0)) {
+            setError(`"${q.label}" is required.`);
             return;
           }
-        } else if (!val || (Array.isArray(val) && val.length === 0)) {
-          setError(`"${q.label}" is required.`);
-          return;
         }
       }
     }
 
     try {
       setSubmitting(true);
+
       const formData = new FormData();
 
-      // answers
       Object.entries(answers).forEach(([key, value]) => {
         if (Array.isArray(value)) {
           formData.append(key, JSON.stringify(value));
@@ -101,12 +102,13 @@ export default function FormViewer() {
         }
       });
 
-      // files
       Object.entries(files).forEach(([key, fileList]) => {
-        fileList.forEach((file) => formData.append(key, file));
+        if (fileList.length > 0) {
+          fileList.forEach((file) => formData.append(key, file));
+        }
       });
 
-      // Default status
+
       formData.append("status", "Pending");
 
       await submitResponse(formId, formData);
@@ -140,8 +142,8 @@ export default function FormViewer() {
           <form onSubmit={handleSubmit} className="form-content">
 
             {form.questions.map((q) => {
-              const visible = shouldShowQuestion(q.conditional, answers);
-              if (!visible) return null;
+              const isVisible = shouldShowQuestion(q.conditional, answers);
+              if (!isVisible) return null;
 
               return (
                 <div key={q.questionKey} className="question-block">
@@ -149,47 +151,55 @@ export default function FormViewer() {
                     {q.label} {q.required && <span className="req">*</span>}
                   </label>
 
-                  {/* SINGLE LINE */}
+
                   {q.type === "singleLineText" && (
                     <input
                       type="text"
                       className="form-input"
                       value={answers[q.questionKey] || ""}
-                      onChange={(e) => handleChange(q.questionKey, e.target.value)}
+                      onChange={(e) =>
+                        handleChange(q.questionKey, e.target.value)
+                      }
+                      placeholder="Type your answer..."
                     />
                   )}
 
-                  {/* MULTILINE */}
+       
                   {q.type === "multilineText" && (
                     <textarea
                       className="form-textarea"
-                      rows={4}
                       value={answers[q.questionKey] || ""}
-                      onChange={(e) => handleChange(q.questionKey, e.target.value)}
+                      onChange={(e) =>
+                        handleChange(q.questionKey, e.target.value)
+                      }
+                      rows={4}
+                      placeholder="Type your answer..."
                     />
                   )}
 
-                  {/* SINGLE SELECT */}
+      
                   {q.type === "singleSelect" && (
                     <select
                       className="form-select"
                       value={answers[q.questionKey] || ""}
-                      onChange={(e) => handleChange(q.questionKey, e.target.value)}
+                      onChange={(e) =>
+                        handleChange(q.questionKey, e.target.value)
+                      }
                     >
                       <option value="">Select an option</option>
-                      {q.options?.map((opt, i) => (
-                        <option key={i} value={opt}>
-                          {opt}
+                      {q.options?.map((opt) => (
+                        <option key={opt.id || opt} value={opt.name || opt}>
+                          {opt.name || opt}
                         </option>
                       ))}
                     </select>
                   )}
 
-                  {/* MULTI SELECT */}
+
                   {q.type === "multipleSelects" && (
                     <div className="multi-select-options">
-                      {q.options?.map((opt, i) => (
-                        <label key={i} className="checkbox-label">
+                      {["Approved", "Rejected", "Pending", "Reviewed"].map((opt) => (
+                        <label key={opt} className="checkbox-label">
                           <input
                             type="checkbox"
                             checked={answers[q.questionKey]?.includes(opt)}
@@ -201,18 +211,21 @@ export default function FormViewer() {
                     </div>
                   )}
 
-                  {/* FILE UPLOAD */}
+
+                  {/* File Upload */}
                   {q.type === "multipleAttachments" && (
                     <div className="file-upload-block">
                       <input
                         type="file"
                         multiple
-                        onChange={(e) => handleFileChange(q.questionKey, e.target.files)}
+                        onChange={(e) =>
+                          handleFileChange(q.questionKey, e.target.files)
+                        }
                       />
-                      {!!files[q.questionKey]?.length && (
+                      {files[q.questionKey]?.length > 0 && (
                         <ul className="file-preview-list">
-                          {files[q.questionKey].map((f, idx) => (
-                            <li key={idx}>{f.name}</li>
+                          {files[q.questionKey].map((file, index) => (
+                            <li key={index}>{file.name}</li>
                           ))}
                         </ul>
                       )}
@@ -223,11 +236,14 @@ export default function FormViewer() {
             })}
 
             <div className="form-footer">
-              <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
+              <button
+                type="submit"
+                className="btn btn-primary btn-block"
+                disabled={submitting}
+              >
                 {submitting ? "Submitting..." : "Submit Response"}
               </button>
             </div>
-
           </form>
         </div>
 
