@@ -13,11 +13,7 @@ export default function Responses() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [resData, formData] = await Promise.all([
-          getResponses(formId),
-          getForm(formId),
-        ]);
-
+        const [resData, formData] = await Promise.all([getResponses(formId), getForm(formId)]);
         setResponses(resData || []);
         setForm(formData);
       } catch (err) {
@@ -38,51 +34,47 @@ export default function Responses() {
       type: q.type,
     })) || [];
 
-  // Render any cell value properly
   const renderAnswer = (value, type) => {
-    if (!value) return "-";
+    if (value === undefined || value === null || value === "") return "-";
 
+    // MULTIPLE SELECT (array of strings)
     if (Array.isArray(value) && type !== "multipleAttachments") {
       return value.join(", ");
     }
 
+    // FILE ATTACHMENTS: expect [{url, name}, ...] or array of urls
     if (type === "multipleAttachments") {
       if (!Array.isArray(value) || value.length === 0) return "No files";
 
       return (
         <div className="file-list-cell">
-          {value.map((file, index) => (
-            <div key={index}>
-              <a
-                href={file.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="file-link"
-              >
-                📎 {file.name || "Download File"}
-              </a>
-            </div>
-          ))}
+          {value.map((file, index) => {
+            // file might be object or string
+            const url = typeof file === "string" ? file : file.url;
+            const name = typeof file === "string" ? file.split("/").pop() : file.name || "Download";
+            return (
+              <div key={index}>
+                <a href={url} target="_blank" rel="noopener noreferrer" className="file-link">
+                  📎 {name}
+                </a>
+              </div>
+            );
+          })}
         </div>
       );
     }
 
+    // OBJECT FALLBACK
     if (typeof value === "object") return JSON.stringify(value);
 
-    return value;
+    // TEXT
+    return String(value);
   };
 
-  // Handle status update
   const handleStatusChange = async (responseId, newStatus) => {
     try {
       await updateResponseStatus(responseId, newStatus);
-
-      // Update state instantly
-      setResponses((prev) =>
-        prev.map((r) =>
-          r._id === responseId ? { ...r, status: newStatus } : r
-        )
-      );
+      setResponses((prev) => prev.map((r) => (r._id === responseId ? { ...r, status: newStatus } : r)));
     } catch (err) {
       console.error("Failed to update status:", err);
       alert("Failed to update status");
@@ -97,21 +89,15 @@ export default function Responses() {
           <div className="responses-header">
             <div>
               <h1 className="responses-title">Responses</h1>
-              <p className="responses-subtitle">
-                {form?.title || "Untitled Form"}
-              </p>
+              <p className="responses-subtitle">{form?.title || "Untitled Form"}</p>
             </div>
-            <div className="response-count-badge">
-              {responses.length} Submissions
-            </div>
+            <div className="response-count-badge">{responses.length} Submissions</div>
           </div>
 
           <div className="table-card card">
             <div className="table-responsive">
               {responses.length === 0 ? (
-                <div className="empty-state-small">
-                  No responses received yet.
-                </div>
+                <div className="empty-state-small">No responses received yet.</div>
               ) : (
                 <table className="responses-table">
                   <thead>
@@ -127,18 +113,13 @@ export default function Responses() {
                   <tbody>
                     {responses.map((r) => (
                       <tr key={r._id}>
-                        <td className="timestamp-cell">
-                          {new Date(r.createdAt).toLocaleString()}
-                        </td>
+                        <td className="timestamp-cell">{new Date(r.createdAt).toLocaleString()}</td>
 
-                        {/* Editable Status Dropdown */}
                         <td>
                           <select
                             className="status-dropdown"
                             value={r.status || "Pending"}
-                            onChange={(e) =>
-                              handleStatusChange(r._id, e.target.value)
-                            }
+                            onChange={(e) => handleStatusChange(r._id, e.target.value)}
                           >
                             <option value="Pending">Pending</option>
                             <option value="Approved">Approved</option>
@@ -147,14 +128,9 @@ export default function Responses() {
                           </select>
                         </td>
 
-                        {/* Dynamic Answer Columns */}
                         {columns.map((col) => {
-                          const value = r.answers[col.key];
-                          return (
-                            <td key={col.key}>
-                              {renderAnswer(value, col.type)}
-                            </td>
-                          );
+                          const value = r.answers?.[col.key];
+                          return <td key={col.key}>{renderAnswer(value, col.type)}</td>;
                         })}
                       </tr>
                     ))}
