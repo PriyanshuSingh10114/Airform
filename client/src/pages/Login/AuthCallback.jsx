@@ -17,15 +17,4 @@ export default function AuthCallback() {
         }
     }, [searchParams, login, navigate]);
 
-    return (
-        <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-            fontFamily: 'Inter, sans-serif'
-        }}>
-            <h2>Logging you in...</h2>
-        </div>
-    );
 }
